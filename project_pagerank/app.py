@@ -5,9 +5,9 @@ import networkx as nx
 app = Flask(__name__, template_folder="templates")
 
 # Sample movies data
-edges_df = pd.read_csv(r"C:\Users\psvma\.vscode\chess\templates\project_pagerank\movie_edges.csv",usecols=["source","target","weight"])
-movies=pd.read_csv(r"C:\Users\psvma\OneDrive\Desktop\jupyter.notebook.ex\datasets\mymoviedb.csv",usecols=["Title","Overview","Original_Language","Genre","Poster_Url"],nrows=1105)
-pagerank_scores=pd.read_csv(r"C:\Users\psvma\.vscode\chess\templates\project_pagerank\pagerank_scores.csv",usecols=["movie","pagerank"])
+edges_df = pd.read_csv(r"project_pagerank\movie_edges.csv",usecols=["source","target","weight"])
+movies=pd.read_csv(r"project_pagerank\datasets\mymoviedb.csv",usecols=["Title","Overview","Original_Language","Genre","Poster_Url"],nrows=1105)
+pagerank_scores=pd.read_csv(r"project_pagerank\pagerank_scores.csv",usecols=["movie","pagerank"])
 
 # movies["Overview"] = movies["Overview"].apply(lambda x: truncate_text(x, 20))
 
