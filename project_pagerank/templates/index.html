@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Recommendations</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #1c1c1c;
+            color: white;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 80%;
+            margin: auto;
+            padding-top: 50px;
+        }
+        .top-right {
+            position: absolute;
+            top: 20px;
+            right: 3cm;
+        }
+        .top-right button {
+            background-color: #ff4757;
+            border: none;
+            padding: 10px 15px;
+            cursor: pointer;
+            color: white;
+            font-size: 16px;
+            border-radius: 5px;
+            transition: background 0.3s ease-in-out, transform 0.2s ease-in-out;
+        }
+        .top-right button:hover {
+            background-color: #ff6b81;
+            transform: scale(1.1);
+        }
+        .search-bar {
+            width: 60%;
+            padding: 12px;
+            font-size: 18px;
+            border-radius: 8px;
+            border: 2px solid #ff4757;
+            outline: none;
+            transition: box-shadow 0.3s ease-in-out, border 0.3s ease-in-out;
+        }
+        .search-bar:focus {
+            box-shadow: 0px 0px 8px rgba(255, 71, 87, 0.8);
+            border: 2px solid #ff6b81;
+        }
+        .movie-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+            justify-content: center;
+            align-items: center;
+        }
+        .movie {
+            width: 200px;
+            margin: auto;
+            cursor: pointer;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .movie:hover {
+            transform: scale(1.05);
+            box-shadow: 0px 4px 10px rgba(255, 71, 87, 0.3);
+        }
+        .movie img {
+            width: 100%;
+            border-radius: 10px;
+        }
+        .history-section {
+            margin-top: 30px;
+            padding: 20px 0;
+            border-top: 2px solid #ff4757;
+        }
+        .history-heading {
+            text-align: left;
+            font-size: 24px;
+            color: #ff4757;
+            margin-left: 20px;
+        }
+        #historyList {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            justify-content: center;
+            margin-top: 15px;
+        }
+
+
+        .sidebar {
+            position: absolute;
+            left: 10px;
+            top: 50px;
+            width: 200px;
+            background-color: #1c1c1c;
+            padding: 10px;
+            border-radius: 10px;
+        }
+        .genres-btn {
+            background-color: #ff4757;
+            border: none;
+            padding: 12px 20px;
+            cursor: pointer;
+            color: white;
+            font-size: 18px;
+            border-radius: 8px;
+            width: 100%;
+            text-align: center;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+        .genres-btn:hover {
+            background-color: #e84118;
+        }
+        .genre-list {
+            display: none;
+            background-color: #333;
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .genre-list button {
+            background-color: #ff4757;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            color: white;
+            font-size: 16px;
+            border-radius: 5px;
+            width: 100%;
+            margin-top: 5px;
+        }
+        .genre-list button:hover {
+            background-color: #e84118;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-right">
+        <button class="language-btn" onclick="toggleDropdown()">Language</button>
+    </div>
+    
+    <div class="sidebar">
+        <button class="genres-btn" onclick="toggleGenres()">Genres</button>
+        <div class="genre-list" id="genreList"></div>
+    </div>
+    
+
+    <div class="container">
+        <input type="text" class="search-bar" id="search" placeholder="Search for movies...">
+        <button onclick="searchMovies()">Search</button>
+        <div class="movie-grid" id="movieGrid"></div>
+        <div class="history-section">
+            <h2 class="history-heading">Watched Movies</h2>
+            <div id="historyList"></div>
+        </div>
+    </div>
+        
+    <script>
+        let watchedMovies = new Set();
+        window.allMovies = []; // Initialize to prevent errors
+
+        async function fetchMovies() {
+            try {
+                const response = await fetch("/get_movies");
+                if (!response.ok) throw new Error("Failed to fetch movies!");
+                const movies = await response.json();
+                console.log("Movies loaded:", movies);
+                window.allMovies = movies;
+                displayMovies(movies);
+            } catch (error) {
+                console.error("Error fetching movies:", error);
+            }
+        }
+
+        function displayMovies(movieList) {
+            const grid = document.getElementById("movieGrid");
+            grid.innerHTML = "";
+            movieList.forEach(movie => {
+                const movieElement = document.createElement("div");
+                movieElement.classList.add("movie");
+                movieElement.innerHTML = `
+                    <img src="${movie.Poster_Url}" alt="${movie.Title}">
+                    <p>${movie.Title}</p>
+                    <p class="overview">${movie.Overview}</p>
+                `;
+                movieElement.onclick = () => addToHistory(movie);
+                grid.appendChild(movieElement);
+            });
+        }
+
+        async function searchMovies() {
+            const query = document.getElementById("search").value.trim();
+            if (!query){
+                // fetchMovies(); 
+                return;
+            }
+            try {
+                const response = await fetch(`/search_movies?title=${encodeURIComponent(query)}`);
+
+                if (!response.ok) throw new Error("Failed to fetch search results!");
+
+                const searchResults = await response.json();
+                console.log("Search Results:", searchResults);
+
+                displayMovies(searchResults); // Reuse the existing display function
+            } catch (error) {
+                console.error("Error fetching search results:", error);
+            }
+        }
+
+        function addToHistory(movie) {
+            if (!watchedMovies.has(movie.Title)) {
+                watchedMovies.add(movie.Title);
+                const historyList = document.getElementById("historyList");
+                historyList.innerHTML += `
+                    <div class="movie">
+                        <img src="${movie.Poster_Url}" alt="${movie.Title}">
+                        <p>${movie.Title}</p>
+                        <p class="overview">${movie.Overview}</p>
+                    </div>
+                `;
+
+                fetchRecommendations();
+            }
+        }
+
+        // Fetch recommendations based on history & PageRank (for selected genre)
+        async function fetchRecommendationsByGenre(genre) {
+            try {
+                selectedGenre = genre; // Update the selected genre
+                const watchedArray = Array.from(watchedMovies);
+                const response = await fetch(`/get_movies_by_genre?genre=${genre}`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ watched: watchedArray })
+                });
+
+                if (!response.ok) throw new Error(`Failed to fetch recommendations for ${genre}!`);
+
+                const recommendedMovies = await response.json();
+                console.log(`Recommended Movies for ${genre}:`, recommendedMovies);
+                displayRecommendedMovies(recommendedMovies);
+            } catch (error) {
+                console.error(`Error fetching recommendations for ${genre}:`, error);
+            }
+        }
+        let selectedGenre = "all";
+
+        async function fetchRecommendations() {
+            try {
+                const watchedArray = Array.from(watchedMovies);
+                const response = await fetch("/recommend_movies", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ watched: watchedArray })
+                });
+
+                if (!response.ok) throw new Error("Failed to fetch recommendations!");
+
+                const recommendedMovies = await response.json();
+                console.log("Recommended Movies:", recommendedMovies);
+                displayRecommendedMovies(recommendedMovies);
+            } catch (error) {
+                console.error("Error fetching recommendations:", error);
+            }
+        }
+
+        function displayRecommendedMovies(movieList) {
+            const grid = document.getElementById("movieGrid");
+            grid.innerHTML = ""; // Clear previous movies
+            movieList.forEach(movie => {
+                const movieElement = document.createElement("div");
+                movieElement.classList.add("movie");
+                movieElement.innerHTML = `
+                    <img src="${movie.Poster_Url}" alt="${movie.Title}">
+                    <p>${movie.Title}</p>
+                    <p class="overview">${movie.Overview}</p>
+                `;
+                movieElement.onclick = () => addToHistory(movie);
+                grid.appendChild(movieElement);
+            });
+        }
+
+        async function fetchGenres() {
+            try {
+                const response = await fetch("/get_genres");
+                if (!response.ok) throw new Error("Failed to fetch genres!");
+
+                const genres = await response.json();
+                console.log("Genres Loaded:", genres);  // Debugging log
+
+                // Get genre list container
+                const genreList = document.getElementById("genreList");
+                genreList.innerHTML = "";  // Clear existing buttons
+
+                // Add 'All' button
+                const allButton = document.createElement("button");
+                allButton.textContent = "All";
+                allButton.onclick = () => fetchMoviesByGenre("all");
+                genreList.appendChild(allButton);
+
+                // Add buttons for each genre
+                genres.forEach(genre => {
+                    const button = document.createElement("button");
+                    button.textContent = genre;
+                    button.onclick = () => fetchMoviesByGenre(genre);
+                    genreList.appendChild(button);
+                });
+            } catch (error) {
+                console.error("Error fetching genres:", error);
+            }
+        }
+
+
+        async function fetchMoviesByGenre(genre) {
+                try {
+                    selectedGenre = genre; // Update the selected genre
+                    const response = await fetch(`/get_movies_by_genre?genre=${genre}`);
+                    if (!response.ok) throw new Error(`Failed to fetch ${genre} movies!`);
+
+                    const movies = await response.json();
+                    console.log(`Top 10 ${genre} Movies Loaded:`, movies);
+
+                    window.allMovies = movies;
+                    displayMovies(movies);
+                    fetchRecommendationsByGenre(genre); // Fetch recommendations after switching genre
+                } catch (error) {
+                    console.error(`Error fetching ${genre} movies:`, error);
+                }
+            }
+
+        function toggleGenres() {
+            const genreList = document.getElementById("genreList");
+            genreList.style.display = genreList.style.display === "block" ? "none" : "block";
+        }
+
+        // window.onload = fetchMovies;
+        window.onload = () => {
+            fetchGenres();
+            fetchMoviesByGenre("all");  // Load all movies initially
+        };
+    </script>
+</body>
+</html>
